@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>دفتر کار</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --primary-dark: #4338ca;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --bg: #eef1fb;
+            --card: #ffffff;
+            --text: #1e1b3a;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --radius: 18px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+            background: linear-gradient(180deg, #eef1fb 0%, #e6e9fb 100%);
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 480px;
+            width: 100%;
+        }
+        .app-title {
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+            margin-bottom: 12px;
+        }
+        .calendar-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: 0 8px 30px rgba(79,70,229,0.12);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .header button {
+            background: var(--bg);
+            color: var(--primary);
+            border: none;
+            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .header button:active { transform: scale(0.92); background: #e0e4fb; }
+        .month-year {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .today-btn {
+            display: block;
+            text-align: center;
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 600;
+            margin: -8px 0 14px;
+            cursor: pointer;
+        }
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-cell {
+            background: #f7f8fc;
+            border-radius: 12px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .day-cell:active { transform: scale(0.92); }
+        .day-cell.has-record { background: var(--success-bg); color: #14532d; font-weight: 700; }
+        .day-cell.off-day { background: var(--danger-bg); color: #7f1d1d; font-weight: 700; }
+        .day-cell.empty { background: transparent; cursor: default; }
+        .day-cell.today { border-color: var(--primary); color: var(--primary-dark); font-weight: 800; }
+        .day-cell.today::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(20,17,50,0.55);
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: var(--card);
+            width: 100%;
+            max-width: 480px;
+            padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+            border-radius: 24px 24px 0 0;
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-content h3 {
+            margin: 0 0 16px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        .input-group { margin-bottom: 14px; }
+        .input-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: var(--text-muted); }
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fafbff;
+            color: var(--text);
+        }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+        }
+        .input-group textarea { height: 64px; resize: vertical; }
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        .btn-save:active { background: var(--primary-dark); }
+        .btn-close {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .stats-section { margin-top: 16px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .stat-box {
+            background: var(--card);
+            padding: 14px 10px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(79,70,229,0.08);
+        }
+        .stat-box .num { font-size: 22px; font-weight: 800; color: var(--primary); }
+        .stat-box .label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e1b3a;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 30px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            z-index: 2000;
+            max-width: 90%;
+        }
+        .settlement-btn {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: none;
+            padding: 13px;
+            width: 100%;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .list-title { margin: 18px 4px 10px; font-weight: 700; font-size: 14px; color: var(--text); }
+        .list-records { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .list-item {
+            background: var(--card);
+            padding: 10px 14px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-right: 4px solid var(--primary);
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .list-empty { color: var(--text-muted); text-align: center; padding: 16px; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <div class="app-title">📋 دفتر کار</div>
+
+    <div class="calendar-card">
+        <div class="header">
+            <button onclick="changeMonth(-1)">◀</button>
+            <span class="month-year" id="displayMonthYear"></span>
+            <button onclick="changeMonth(1)">▶</button>
+        </div>
+        <div class="today-btn" onclick="goToToday()">رفتن به امروز</div>
+        <div class="weekdays">
+            <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span>
+        </div>
+        <div class="days-grid" id="daysContainer"></div>
+    </div>
+
+    <!-- مودال -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <h3 id="modalDateTitle">تاریخ</h3>
+            <div class="input-group">
+                <label>ورود (ساعت)</label>
+                <input type="time" id="entryTime">
+            </div>
+            <div class="input-group">
+                <label>خروج (ساعت)</label>
+                <input type="time" id="exitTime">
+            </div>
+            <div class="input-group">
+                <label>وضعیت</label>
+                <select id="statusSelect">
+                    <option value="present">حضور</option>
+                    <option value="holiday">تعطیلی</option>
+                    <option value="leave">مرخصی</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>گزارش کار / توضیحات</label>
+                <textarea id="reportText" placeholder="مثلاً: تسویه‌حساب، پروژه X..."></textarea>
+            </div>
+            <button class="btn-save" onclick="saveRecord()">💾 ذخیره</button>
+            <button class="btn-close" onclick="closeModal()">بستن</button>
+        </div>
+    </div>
+
+    <!-- بخش آمار -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-box"><div class="num" id="totalDays">0</div><div class="label">روزهای کاری</div></div>
+            <div class="stat-box"><div class="num" id="totalHours">0</div><div class="label">مجموع ساعت‌ها</div></div>
+            <div class="stat-box"><div class="num" id="totalHolidays">0</div><div class="label">تعطیلی</div></div>
+            <div class="stat-box"><div class="num" id="totalLeaves">0</div><div class="label">مرخصی</div></div>
+        </div>
+
+        <button class="settlement-btn" onclick="settleAll()">🧹 تسویه (پاک کردن همه)</button>
+
+        <div class="list-title">گزارش روزهای ثبت‌شده</div>
+        <div class="list-records" id="recordsList">
+            <div class="list-empty">روزی را انتخاب کنید...</div>
+        </div>
+    </div>
+</div>
+
+<div id="toastMessage" class="toast"></div>
+
+<script>
+    // ---------- متغیرهای تقویم ----------
+    let currentYear = 1405;
+    let currentMonth = 1;
+    let todayKey = '';
+
+    // ---------- توابع کمکی ----------
+    function getDaysInMonth(year, month) {
+        if (month <= 6) return 31;
+        if (month <= 11) return 30;
+        const isLeap = (year % 33 === 1 || year % 33 === 5 || year % 33 === 9 || year % 33 === 13 || year % 33 === 17 || year % 33 === 22 || year % 33 === 26 || year % 33 === 30);
+        return isLeap ? 30 : 29;
+    }
+
+    function getFirstDayOfMonth(year, month) {
+        const baseMiladi = new Date(1921, 2, 21);
+        let diffDays = 0;
+        for (let y = 1300; y < year; y++) {
+            for (let m = 1; m <= 12; m++) diffDays += getDaysInMonth(y, m);
+        }
+        for (let m = 1; m < month; m++) diffDays += getDaysInMonth(year, m);
+        const targetDate = new Date(baseMiladi);
+        targetDate.setDate(targetDate.getDate() + diffDays);
+        return targetDate.getDay();
+    }
+
+    function getData() {
+        return JSON.parse(localStorage.getItem('work_calendar_data') || '{}');
+    }
+
+    function setData(data) {
+        localStorage.setItem('work_calendar_data', JSON.stringify(data));
+    }
+
+    const monthNames = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+
+    // ---------- رندر تقویم ----------
+    function renderCalendar() {
+        const container = document.getElementById('daysContainer');
+        container.innerHTML = '';
+        document.getElementById('displayMonthYear').innerText = `${monthNames[currentMonth-1]} ${currentYear}`;
+
+        const daysCount = getDaysInMonth(currentYear, currentMonth);
+        const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+        let startOffset = (firstDay + 1) % 7;
+
+        for (let i = 0; i < startOffset; i++) {
+            const div = document.createElement('div');
+            div.className = 'day-cell empty';
+            container.appendChild(div);
+        }
+
+        const data = getData();
+        for (let d = 1; d <= daysCount; d++) {
+            const div = document.createElement('div');
+            div.className = 'day-cell';
+            const dateKey = `${currentYear}/${String(currentMonth).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+            div.innerText = d;
+
+            if (data[dateKey]) {
+                if (data[dateKey].status === 'holiday' || data[dateKey].status === 'leave') {
+                    div.classList.add('off-day');
+                } else {
+                    div.classList.add('has-record');
+                }
+            }
+            if (dateKey === todayKey) {
+                div.classList.add('today');
+            }
+            div.onclick = () => openModal(dateKey, d);
+            container.appendChild(div);
+        }
+        updateStats();
+    }
+
+    // ---------- مودال ----------
+    let currentDateKey = '';
+
+    function openModal(dateKey, day) {
+        currentDateKey = dateKey;
+        document.getElementById('modalDateTitle').innerText = `📅 ${dateKey}`;
+        const data = getData();
+        const record = data[dateKey] || {};
+        document.getElementById('entryTime').value = record.entry || '';
+        document.getElementById('exitTime').value = record.exit || '';
+        document.getElementById('statusSelect').value = record.status || 'present';
+        document.getElementById('reportText').value = record.report || '';
+        document.getElementById('eventModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('eventModal').style.display = 'none';
+    }
+
+    function saveRecord() {
+        const data = getData();
+        data[currentDateKey] = {
+            entry: document.getElementById('entryTime').value,
+            exit: document.getElementById('exitTime').value,
+            status: document.getElementById('statusSelect').value,
+            report: document.getElementById('reportText').value
+        };
+        setData(data);
+        closeModal();
+        renderCalendar();
+        showToast('✅ ذخیره شد.');
+    }
+
+    // ---------- تغییر ماه ----------
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+        if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+        if (currentYear < 1380) currentYear = 1380;
+        if (currentYear > 1420) currentYear = 1420;
+        renderCalendar();
+    }
+
+    function goToToday() {
+        const t = getTodayJalali();
+        currentYear = t.year;
+        currentMonth = t.month;
+        renderCalendar();
+    }
+
+    // ---------- آمار ----------
+    function updateStats() {
+        const data = getData();
+        let totalDays = 0, totalHours = 0, holidays = 0, leaves = 0;
+        let listHtml = '';
+
+        const keys = Object.keys(data).sort();
+        for (let key of keys) {
+            const rec = data[key];
+            const status = rec.status || 'present';
+            if (status === 'present') {
+                totalDays++;
+                if (rec.entry && rec.exit) {
+                    const [h1, m1] = rec.entry.split(':').map(Number);
+                    const [h2, m2] = rec.exit.split(':').map(Number);
+                    let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+                    if (diff < 0) diff += 1440;
+                    totalHours += diff / 60;
+                }
+                listHtml += `<div class="list-item"><span>✅ ${key}</span><span>${rec.entry || '--'} تا ${rec.exit || '--'}</span></div>`;
+            } else if (status === 'holiday') {
+                holidays++;
+                listHtml += `<div class="list-item" style="border-right-color:var(--danger);"><span>🏖️ ${key}</span><span>تعطیلی</span></div>`;
+            } else if (status === 'leave') {
+                leaves++;
+                listHtml += `<div class="list-item" style="border-right-color:var(--warning);"><span>🏠 ${key}</span><span>مرخصی</span></div>`;
+            }
+        }
+
+        document.getElementById('totalDays').innerText = totalDays;
+        document.getElementById('totalHours').innerText = totalHours.toFixed(1);
+        document.getElementById('totalHolidays').innerText = holidays;
+        document.getElementById('totalLeaves').innerText = leaves;
+        document.getElementById('recordsList').innerHTML = listHtml || '<div class="list-empty">هیچ رکوردی ثبت نشده</div>';
+    }
+
+    // ---------- تسویه ----------
+    function settleAll() {
+        if (confirm('⚠️ آیا مطمئنی که همه‌ی داده‌ها پاک شوند؟ (تسویه حساب)')) {
+            if (confirm('پاک کردن نهایی! باز هم تأیید می‌کنی؟')) {
+                setData({});
+                renderCalendar();
+                showToast('🧹 همه چیز پاک شد.');
+            }
+        }
+    }
+
+    // ---------- Toast ----------
+    function showToast(msg) {
+        const el = document.getElementById('toastMessage');
+        el.style.display = 'block';
+        el.innerText = msg;
+        setTimeout(() => { el.style.display = 'none'; }, 3000);
+    }
+
+    // ---------- تاریخ امروز (جلالی) ----------
+    function getTodayJalali() {
+        const now = new Date();
+        // numberingSystem 'latn' forces Latin digits instead of Persian digits (۱۴۰۵)
+        // which otherwise break parseInt and always fall back to the default date.
+        const formatter = new Intl.DateTimeFormat('fa-IR-u-nu-latn', { calendar: 'persian', year: 'numeric', month: 'numeric', day: 'numeric' });
+        const parts = formatter.formatToParts(now);
+        let y = 1405, m = 1, d = 1;
+        for (let p of parts) {
+            if (p.type === 'year') y = parseInt(p.value, 10);
+            if (p.type === 'month') m = parseInt(p.value, 10);
+            if (p.type === 'day') d = parseInt(p.value, 10);
+        }
+        if (isNaN(y) || isNaN(m) || isNaN(d)) { y = 1405; m = 1; d = 1; }
+        return { year: y, month: m, day: d };
+    }
+
+    // ---------- شروع اولیه ----------
+    const t = getTodayJalali();
+    if (t.year >= 1380 && t.year <= 1420) {
+        currentYear = t.year;
+        currentMonth = t.month;
+        todayKey = `${t.year}/${String(t.month).padStart(2,'0')}/${String(t.day).padStart(2,'0')}`;
+    }
+    renderCalendar();
+
+    window.onclick = function(e) {
+        const modal = document.getElementById('eventModal');
+        if (e.target === modal) closeModal();
+    }
+
+    // ---------- ثبت Service Worker برای نصب به‌صورت اپ ----------
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js').catch(() => {});
+        });
+    }
+</script>
+</body>
+</html>
